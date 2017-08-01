@@ -45,7 +45,7 @@ section 2, 'Instant Gratification' do
   rails 'demo1', :work
 
   restart_server
-  get "/"#, screenshot: { filename: "hello_rails.png", dimensions: [ (640 *2), (480*2) ] }
+  get "/", screenshot: { filename: "hello_rails.pdf", dimensions: [ (640 *2), (480*2) ] }
 
   desc 'See what files were created'
   cmd 'ls -p'
@@ -59,7 +59,7 @@ section 2, 'Instant Gratification' do
   restart_server
 
   desc 'Attempt to fetch the file - note that it is missing'
-  get '/say/hello'#, screenshot: { filename: "hello_missing.png", dimensions: [320,200] }
+  get '/say/hello', screenshot: { filename: "hello_missing.pdf", dimensions: [320,200] }
 
   desc 'Replace file with a simple hello world'
   edit 'app/views/say/hello.html.erb' do
@@ -69,7 +69,7 @@ section 2, 'Instant Gratification' do
   end
 
   desc 'This time it works!'
-  get '/say/hello'#, screenshot: { filename: "hello_works.png", dimensions: [320,200] }
+  get '/say/hello', screenshot: { filename: "hello_works.pdf", dimensions: [320,200] }
   publish_code_snapshot :work, :demo1
 
   desc 'Add a simple expression'
@@ -230,7 +230,8 @@ section 6.1, 'Iteration A1: Creating the Products Maintenance Application' do
   restart_server
 
   desc 'Get an (empty) list of products'
-  get '/products'
+  get '/products', screenshot: { filename: "a_1_products.pdf", dimensions: [ 320,200] }
+  get '/products/new', screenshot: { filename: "a_2_new_product.pdf", dimensions: [ 320,400] }
 
   desc 'Show (and modify) one of the templates produced'
   edit 'app/views/products/_form.html.erb' do
@@ -241,25 +242,38 @@ section 6.1, 'Iteration A1: Creating the Products Maintenance Application' do
   end
 
   desc 'Create a product'
+  new_product_title = 'Seven Mobile Apps in Seven Weeks'
+  new_product_description = %{
+<p>
+  <em>Native Apps, Multiple Platforms</em>
+  Answer the question “Can we build this for ALL the
+  devices?” with a resounding YES. This book will help you
+  get there with a real-world introduction to seven
+  platforms, whether you’re new to mobile or an experienced
+  developer needing to expand your options. Plus, you’ll
+  find out which cross-platform solution makes the most
+  sense for your needs.
+</p>
+}
+  new_product_price = "29.00"
+  new_product_image_url = "7apps.jpg"
+  get '/products/new', screenshot: {
+    filename: "a_3_new_product_filled_in.pdf",
+    form_data: {
+      'product[title]' => new_product_title,
+      'product[description]' => new_product_description,
+      'product[price]' => new_product_price,
+      'product[image_url]' => new_product_image_url
+    }
+  }
   post '/products/new',
-    'product[title]' => 'Seven Mobile Apps in Seven Weeks',
-    'product[description]' => <<-EOF.unindent(6),
-      <p>
-        <em>Native Apps, Multiple Platforms</em>
-        Answer the question “Can we build this for ALL the
-        devices?” with a resounding YES. This book will help you
-        get there with a real-world introduction to seven
-        platforms, whether you’re new to mobile or an experienced
-        developer needing to expand your options. Plus, you’ll
-        find out which cross-platform solution makes the most
-        sense for your needs.
-      </p>
-    EOF
-    'product[price]' => '29.00',
-    'product[image_url]' => '7apps.jpg'
+    'product[title]' => new_product_title,
+    'product[description]' => new_product_description,
+    'product[price]' => new_product_price,
+    'product[image_url]' => new_product_image_url
 
   desc 'Verify that the product has been added'
-  get '/products'
+  get '/products', screenshot: { filename: "a_4_added_product.pdf", dimensions: [ 720,380] }
 
   desc "And, just to verify that we haven't broken anything"
   test
@@ -288,7 +302,7 @@ section 6.2, 'Iteration A2: Making Prettier Listings' do
     desc 'Add some style'
     edit "app/assets/stylesheets/products*.scss" do
       msub /(\s*)\Z/, "\n\n"
-      msub /\n\n()\Z/, read('products.css.scss'), :highlight
+      msub /\n\n()\Z/, read('products.css.scss')
     end
   end
 
@@ -321,7 +335,7 @@ section 6.2, 'Iteration A2: Making Prettier Listings' do
   end
 
   desc 'See the finished result'
-  get '/products'
+  get '/products', screenshot: { filename: "a_5_styled_products.pdf", dimensions: [ 800,400] }
 end
 
 section 6.3, 'Playtime' do
@@ -3561,7 +3575,7 @@ section 15.1, 'Iteration J1: Adding Users' do
       msub /:password_confirmation()/, ", 'Confirm:'"
     end
     edit 'field :password_', :highlight do
-      msub /() %>/, ', size: 40'
+      msub /() %>/, ',\n                            size: 40'
     end
 
     msub /^()<% end %>/, <<-EOF.unindent(4)
