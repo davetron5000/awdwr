@@ -317,9 +317,13 @@ section 6.2, 'Iteration A2: Making Prettier Listings' do
   desc 'Link to the stylesheet in the layout'
   edit 'app/views/layouts/application.html.erb' do
     clear_highlights
-    edit '<body>', :highlight
-    msub /<body()>/, " class='<%= controller.controller_name %>'"
-
+    msub /^(    <%= yield %>)/,%{
+    <!-- START_HIGHLIGHT -->
+    <main class='<%= controller.controller_name %>'>
+      <%= yield %>
+    </main>
+    <!-- END_HIGHLIGHT -->
+}
     if self =~ /, ['"]data-turbolinks-track['"]/
       msub /,( )['"]data-turbolinks-track['"]/, "\n    "
     end
@@ -406,10 +410,11 @@ section 7.1, 'Iteration B1: Validation and Unit Testing' do
 
   desc 'Demonstrate failures.'
   post '/products/new',
-    'product[price]' => '0.0'
+    { 'product[price]' => '0.0' },
+    screenshot: { filename: "b_1_validation_errors.pdf", dimensions: [ 640, 720 ], submit_form: true }
 
   desc 'Demonstrate more failures.'
-  post '/products/new',
+  post '/products/new', {
     'product[title]' => 'Pragmatic Unit Testing',
     'product[description]' => <<-EOF.unindent(6),
       A true masterwork.  Comparable to Kafka at
@@ -419,7 +424,8 @@ section 7.1, 'Iteration B1: Validation and Unit Testing' do
     EOF
     'product[image_url]' => 
       (File.exist?('public/images') ? '/images/utj.jpg' : 'utj.jpg'),
-    'product[price]' => 'wibble'
+    'product[price]' => 'wibble' },
+    screenshot: { filename: "b_2_price_validation_errors.pdf", dimensions: [ 640, 720 ], submit_form: true }
 
   edit 'app/models/product.rb' do |data|
     data.sub! /\s:allow_blank.*,/, ''
@@ -600,7 +606,7 @@ section 8.1, 'Iteration C1: Create the Catalog Listing' do
   end
 
   desc 'Demonstrate that everything is wired together'
-  get '/'
+  get '/', screenshot: { filename: "d_1_new_root.pdf", dimensions: [ 400, 200 ] }
 
   desc 'In the controller, get a list of products from the model'
   edit 'app/controllers/store_controller.rb' do
@@ -618,12 +624,12 @@ section 8.1, 'Iteration C1: Create the Catalog Listing' do
     desc 'Add some basic style'
     edit "app/assets/stylesheets/store*.scss" do
       msub /(\s*)\Z/, "\n\n"
-      msub /\n\n()\Z/, read('store.css.scss'), :highlight
+      msub /\n\n()\Z/, read('store.css.scss')
     end
   end
 
   desc 'Show our first (ugly) catalog page'
-  get '/'
+  get '/', screenshot: { filename: "d_2_catalog.pdf", dimensions: [ 1024, 600 ] }
   publish_code_snapshot :d
 end
 
@@ -643,16 +649,6 @@ section 8.2, 'Iteration C2: Add a Page Layout' do
 
   desc 'Modify the stylesheet'
   if DEPOT_CSS =~ /scss/
-    if
-      File.exist? 'app/assets/stylesheets/scaffolds.scss' and
-      File.read('app/assets/stylesheets/scaffolds.scss').include? '33px'
-    then
-      additional_css = <<-EOF.gsub(/^\s+/, '') + "\n"
-        body, body > p, body > ol, body > ul, body > td {margin: 8px !important}
-      EOF
-    else
-      additional_css = ''
-    end
     
     desc 'Rename the application stylesheet so that we can use SCSS'
     cmd "mv app/assets/stylesheets/application.css #{DEPOT_CSS}"
@@ -666,86 +662,73 @@ section 8.2, 'Iteration C2: Add a Page Layout' do
       end
 
       msub /(\s*)\Z/, "\n\n"
-      msub /\n\n()\Z/, additional_css + <<-EOF.unindent(8), :highlight
-        /* START:desktop */
-        #banner {
-          position: relative;
-          min-height: 40px;
-          background: #9c9;
-          padding: 10px;
-          border-bottom: 2px solid;
-          font: small-caps 40px/40px "Times New Roman", serif;
-          color: #282;
-          text-align: center;
+      msub /\n\n()\Z/, <<-EOF
+body {
+  margin: 0;
+  padding: 0;
+}
+header.main {
+  text-align: center; // center on mobile
+  @media (min-width: 30em) {
+    text-align: left; // left align on desktop
+  }
+  background: #282;
+  margin: 0;
+  h1 {
+    display: none;
+  }
+}
+.content {
+  margin: 0;
+  padding: 0;
 
-          img {
-            position: absolute;
-            top: 0; 
-            left: 0;
-            width: 192px;
+  display: flex;
+  display: -webkit-flex;
+  flex-direction: column; // mobile is horizontally laid out
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+
+  @media (min-width: 30em) {
+    flex-direction: row;  // desktop is vertically laid out
+    -webkit-box-orient: horizontal;
+  }
+
+  nav {
+    padding-bottom: 1em;
+    padding-right: 1.41em;
+    background: #141;
+    text-align: center;  // mobile has centered nav
+    @media (min-width: 30em) {
+      text-align: left; // desktop nav is left-aligned
+      padding: 2.827em;  // and needs more padding
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      li {
+        margin: 0;
+        padding: 0.354em;
+        text-transform: uppercase;
+        letter-spacing: 0.354em;
+        a {
+          padding: 0.354em 0.5em;
+          border-radius: 0.354em;
+          color: #bfb;
+          display: block;
+          width: 100%;
+          text-decoration: none;
+          &:hover {
+            background: #282;
           }
         }
-
-        #notice {
-          color: #000 !important;
-          border: 2px solid red;
-          padding: 1em;
-          margin-bottom: 2em;
-          background-color: #f0f0f0;
-          font: bold smaller sans-serif;
-        }
-
-        #notice:empty {
-          display: none;
-        }
-
-        #columns {
-          background: #141;
-          display: flex;
-
-          #main {
-            padding: 1em;
-            background: white;
-            flex: 1;
-          }
-
-          #side {
-            padding: 1em 2em;
-            background: #141;
-
-            ul {
-              padding: 0;
-
-              li {
-                list-style: none;
-
-                a {
-                  color: #bfb;
-                  font-size: small;
-                }
-              }
-            }
-          }
-        }
-        /* END:desktop */
-
-        /* START:mobile */
-        @media all and (max-width: 800px) {
-          #columns {
-            flex-direction: column-reverse;
-          }
-        }
-
-        @media all and (max-width: 500px) {
-          #banner {
-            height: 1em;
-          }
-
-          #banner .title {
-            display: none;
-          }
-        }
-        /* END:mobile */
+      }
+    }
+  }
+  main {
+    padding: 0.5em;
+  }
+}
       EOF
     end
   else
@@ -806,7 +789,7 @@ section 8.2, 'Iteration C2: Add a Page Layout' do
   end
 
   desc 'Show the results.'
-  get '/'
+  get '/', screenshot: { filename: "e_1_catalog_with_nav.pdf", dimensions: [ 1024, 600 ] }
 end
 
 section 8.3, 'Iteration C3: Use a Helper to Format the Price' do
@@ -822,7 +805,7 @@ section 8.3, 'Iteration C3: Use a Helper to Format the Price' do
   end
 
   desc 'Show the results.'
-  get '/'
+  get '/', screenshot: { filename: "e_2_prices_fixed.pdf", dimensions: [ 1024, 300 ] }
 end
 
 section 8.4, 'Iteration C4: Functional Testing' do
@@ -839,10 +822,10 @@ section 8.4, 'Iteration C4: Functional Testing' do
     clear_highlights
     dcl 'should get index' do
       msub /^()\s+end/, <<-'EOF'.unindent(4), :highlight
-        assert_select '#columns #side a', :minimum => 4
-        assert_select '#main .entry', 3
-        assert_select 'h3', 'Programming Ruby 1.9'
-        assert_select '.price', /\$[,\d]+\.\d\d/
+        assert_select 'nav.side_nav a', :minimum => 4 
+        assert_select 'main ul.catalog li', 3
+        assert_select 'h2', 'Programming Ruby 1.9'
+        assert_select 'p.price', /\$[,\d]+\.\d\d/
       EOF
     end
     gsub! /:(\w+) (\s*)=>/, '\1:\2' unless RUBY_VERSION =~ /^1\.8/
@@ -875,16 +858,7 @@ section 8.5, 'Iteration C5 - Caching' do
   unless $rails_version =~ /^3\./
     desc 'cache sections'
     edit 'app/views/store/index.html.erb' do
-      # adjust indentation
-      gsub!(/<% @products.each.*/m) { |each| each.gsub! /^/, '  ' }
-      gsub!(/<div.*<\/div>/m) { |div| div.gsub! /^/, '  ' }
-
-      msub /()  <% @products.each do \|product\| %>\n/,
-        "<% cache @products do %>\n", :highlight
-      msub /<% @products.each do \|product\| %>\n()/, 
-        "    <% cache product do %>\n", :highlight
-      msub /<\/div>\n  <% end %>\n()/,  "<% end %>\n", :highlight
-      msub /<\/div>\n()  <% end %>\n/,  "    <% end %>\n", :highlight
+      self.all = read('store/cached-index.html.erb')
     end
   end
   edit "test/fixtures/products.yml" do
