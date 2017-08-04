@@ -1059,12 +1059,23 @@ section 9.3, 'Iteration D3: Adding a button' do
   desc 'Add a bit of style to make it show all on one line'
   if DEPOT_CSS =~ /scss/
     edit 'app/assets/stylesheets/store*.scss', 'inline' do
-      edit /^ +p, div.price_line \{.*?\n()    \}\n/m, :mark => 'inline'
-      msub /^ +p, div.price_line \{.*?\n()    \}\n/m, "\n" + <<-EOF.unindent(2)
+      edit /^      .price \{.*?\n()    \}\n/m, :mark => 'inline'
+      msub /^      .price \{.*?\n()    \}\n/m, "\n" + <<-EOF.unindent(2)
         /* START_HIGHLIGHT */
         form, div {
           display: inline;
         }
+        input[type="submit"] {
+          background-color: #282;
+          border-radius: 0.354em;
+          border: solid thin #141;
+          color: white;
+          font-size: 1em;
+          padding: 0.354em 1em;
+        }
+        input[type="submit"]:hover {
+          background-color: #141;
+        } 
         /* END_HIGHLIGHT */
       EOF
     end
@@ -1081,7 +1092,7 @@ section 9.3, 'Iteration D3: Adding a button' do
   end
 
   desc "See the button on the page"
-  get '/'
+  get '/', screenshot: { filename: "f_1_added_button.pdf", dimensions: [ 1024, 300 ] }
 
   desc 'Update the LineItem.new call to use set_cart and the ' +
        'product id. Additionally change the logic so that redirection upon ' +
@@ -1127,12 +1138,15 @@ section 9.3, 'Iteration D3: Adding a button' do
   end
 
   desc "Try it once, and see that the output isn't very useful yet."
-  post '/', 'product_id' => 3
+  post '/', { 'product_id' => 3 },
+    screenshot: { filename: "f_2_boring_cart.pdf", dimensions: [ 640, 720 ], form_data: {}, submit_form: 1 }
 
   desc 'Update the template that shows the Cart.'
   edit 'app/views/carts/show.html.erb' do
     self.all = <<-EOF.unindent(6)
-      <p id="notice"><%= notice %></p>
+      <% if notice %>
+        <aside class="notice"><%= notice %></aside>
+      <% end %>
 
       <h2>Your Pragmatic Cart</h2>
       <ul>    
@@ -1143,8 +1157,27 @@ section 9.3, 'Iteration D3: Adding a button' do
     EOF
   end
 
+  desc "Style the flash"
+  edit 'app/assets/stylesheets/application.scss' do
+    msub /()^.content/,%{
+// START:notice
+.notice, #notice {
+  background: #bfb;
+  border-radius: 0.5em;
+  border: solid 0.177em #282;
+  color: #282;
+  font-weight: bold;
+  margin-bottom: 1em;
+  padding: 1em 1.414em;
+  text-align: center;
+}
+// END:notice
+}
+  end
+
   desc "Try it once again, and see that the products in the cart."
-  post '/', 'product_id' => 3
+  post '/', { 'product_id' => 3 },
+    screenshot: { filename: "f_3_better_cart.pdf", dimensions: [ 640, 720 ], form_data: {}, submit_form: 1 }
   publish_code_snapshot :f
 end
 

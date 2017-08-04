@@ -38,11 +38,17 @@ if (height == "default") {
 
 var formFields = {};
 var submitForm = false;
+var whichForm = 0;
 if (args.length >= 5) {
   for (var i = 5; i < args.length; i++) {
     if (args[i] === "SUBMIT") {
       console.log("Planning to submit the form");
       submitForm = true;
+    }
+    else if (args[i] === "SUBMIT1") {
+      console.log("Planning to submit the form");
+      submitForm = true;
+      whichForm = 1;
     }
     else {
       var parts = args[i].split(/=/,2);
@@ -52,7 +58,7 @@ if (args.length >= 5) {
 }
 
 page.open(file, function () {
-  page.evaluate(function(formFields, submitForm) {
+  page.evaluate(function(formFields, submitForm, whichForm) {
     for (var key in formFields) {
       if (formFields.hasOwnProperty(key)) {
         console.log("Finding form element named '" + key + "', setting value to '" + formFields[key] + "'");
@@ -74,16 +80,28 @@ page.open(file, function () {
     }
     if (submitForm) {
       var forms = document.getElementsByTagName("form");
-      if (forms.length === 1) {
-        forms[0].submit();
-        console.log("Form submitted");
-      }
-      else {
-        console.log("Expecting exactly one <form>, but found " + forms.length);
-        throw "ERROR";
+      if (whichForm == 0) {
+        if (forms.length === 1) {
+          forms[0].submit();
+          console.log("Form submitted");
+        }
+        else {
+          console.log("Expecting exactly one <form>, but found " + forms.length);
+          throw "ERROR";
+        }
+      } else {
+        var form = forms[whichForm];
+        if (form) {
+          form.submit();
+          console.log("Form submitted");
+        }
+        else {
+          console.log("Tring to submit form #" + whichForm + ", but there aren't that many.  Found " + forms.length + " forms");
+          throw "ERROR";
+        }
       }
     }
-  }, formFields, submitForm);
+  }, formFields, submitForm, whichForm);
 
   interval = setInterval(function() {
     if (!loadInProgress) {
