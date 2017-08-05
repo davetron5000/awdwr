@@ -198,7 +198,7 @@ class DepotTest < Gorp::TestCase
 
   section 10.1, "Iteration E1: Creating A Smarter Cart" do
     assert_select 'li', /Rails, Angular, Postgres, and Bootstrap/u
-    assert_select '#main li', :count => 4, :html => /1 .+ Seven Mobile Apps in Seven Weeks/
+    assert_select 'main li', :count => 4, :html => /1 .+ Seven Mobile Apps in Seven Weeks/
     assert_select '.stdout', /^=+ (\d+)? *CombineItemsInCart: reverting =+$/
     assert_select '.stdout', /^ +down +\d+ +Combine items in cart$/
     if $rails_version =~ /^3\./
@@ -224,7 +224,7 @@ class DepotTest < Gorp::TestCase
 
   section 10.3, "Iteration E3: Finishing the Cart" do
     assert_select '#notice', 'Your cart is currently empty'
-    assert_select '.total_cell', '$116.00'
+    assert_select 'tfoot .price', '$116.00'
     assert_select 'input[type=submit][value="Empty cart"]'
   end
 
@@ -247,7 +247,7 @@ class DepotTest < Gorp::TestCase
   end
 
   section 11.1, "Iteration F1: Moving the Cart" do
-    assert_select 'h2', 'Your Cart'
+    assert_select 'h1', 'Your Cart'
     assert_select '.total_cell', '$116.00'
     assert_select 'input[type=submit][value="Empty cart"]'
 

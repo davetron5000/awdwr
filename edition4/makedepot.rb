@@ -825,7 +825,7 @@ section 8.4, 'Iteration C4: Functional Testing' do
         assert_select 'nav.side_nav a', :minimum => 4 
         assert_select 'main ul.catalog li', 3
         assert_select 'h2', 'Programming Ruby 1.9'
-        assert_select 'p.price', /\$[,\d]+\.\d\d/
+        assert_select '.price', /\$[,\d]+\.\d\d/
       EOF
     end
     gsub! /:(\w+) (\s*)=>/, '\1:\2' unless RUBY_VERSION =~ /^1\.8/
@@ -1162,10 +1162,10 @@ section 9.3, 'Iteration D3: Adding a button' do
     msub /()^.content/,%{
 // START:notice
 .notice, #notice {
-  background: #bfb;
+  background: #ffb;
   border-radius: 0.5em;
-  border: solid 0.177em #282;
-  color: #282;
+  border: solid 0.177em #882;
+  color: #882;
   font-weight: bold;
   margin-bottom: 1em;
   padding: 1em 1.414em;
@@ -1224,6 +1224,12 @@ section 10.1, 'Iteration E1: Creating a Smarter Cart' do
   overview <<-EOF
     Change the cart to track the quantity of each product.
   EOF
+
+  desc 'Add a few products to the order.'
+  post '/', {'product_id' => 2}
+  post '/', {'product_id' => 2}
+  post '/', {'product_id' => 3}
+
 
   desc "Add a quantity column to the line_item table in the database."
   generate 'migration add_quantity_to_line_items quantity:integer'
@@ -1298,7 +1304,9 @@ section 10.1, 'Iteration E1: Creating a Smarter Cart' do
   db :migrate
 
   desc "Verify that the entries have been combined."
-  get '/carts/1'
+  %w(1 2 3).each do |cart_id|
+    get "/carts/#{cart_id}", screenshot: { filename: "g_1_cart_#{cart_id}_quantities.pdf", dimensions: [ 640, 300 ] }
+  end
 
   desc 'Fill in the self.down method'
   migration = Dir['db/migrate/*combine_items_in_cart.rb'].first
@@ -1310,7 +1318,9 @@ section 10.1, 'Iteration E1: Creating a Smarter Cart' do
   cmd "mv #{migration} #{migration.sub('.rb', '.bak')}"
 
   desc 'Every item should (once again) only have a quantity of one.'
-  get '/carts/1'
+  %w(1 2 3).each do |cart_id|
+    get "/carts/#{cart_id}", screenshot: { filename: "g_2_cart_#{cart_id}_no_quantities.pdf", dimensions: [ 640, 300 ] }
+  end
 
   desc 'Recombine the item data.'
   cmd "mv #{migration.sub('.rb', '.bak')} #{migration}"
@@ -1337,7 +1347,8 @@ section 10.1, 'Iteration E1: Creating a Smarter Cart' do
   end
 
   desc 'Try something malicious.'
-  get '/carts/wibble'
+  get '/carts/wibble',
+    screenshot: { filename: "g_3_cart_error.pdf", dimensions: [ 640, 800 ] }
 end
 
 section 10.2, 'Iteration E2: Handling Errors' do
@@ -1377,7 +1388,8 @@ section 10.2, 'Iteration E2: Handling Errors' do
   end
 
   desc 'Reproduce the error.'
-  get '/carts/wibble'
+  get '/carts/wibble',
+    screenshot: { filename: "g_4_cart_error_fixed.pdf", dimensions: [ 1024, 300 ] }
 
   desc 'Inspect the log.'
   cmd 'tail -25 log/development.log', :highlight => ['Attempt to access']
@@ -1457,7 +1469,9 @@ section 10.3, 'Iteration E3: Finishing the Cart' do
   end
 
   desc 'Try it out.'
-  post '/carts/1', '_method'=>'delete'
+  post '/carts/1', {'_method'=>'delete'},
+    screenshot: { filename: "g_5_empty_cart.pdf", dimensions: [ 1024, 300 ], submit_form: true }
+
   publish_code_snapshot :h
 
   desc 'Remove scaffolding generated flash notice for line item create.'
@@ -1504,17 +1518,42 @@ section 10.3, 'Iteration E3: Finishing the Cart' do
   if DEPOT_CSS =~ /scss/
     edit 'app/assets/stylesheets/carts*.scss' do
       msub /(\s*)\Z/, "\n\n"
-      msub /\n\n()\Z/, <<-EOF.unindent(8), :highlight
-        .carts {
-          .item_price, .total_line {
-            text-align: right;
-          }
-
-          .total_line .total_cell {
-            font-weight: bold;
-            border-top: 1px solid #595;
-          }
-        }
+      msub /\n\n()\Z/, <<-EOF
+.carts {
+  td.quantity {
+    white-space: nowrap;
+  }
+  td.quantity::after {
+    content: " ×";
+  }
+  td.price {
+    font-weight: bold;
+    text-align: right;
+  }
+  tfoot {
+    th, td.price {
+      font-weight: bold;
+      padding-top: 1em;
+    }
+    th {
+      text-align: right;
+    }
+    td.price {
+      border-top: solid thin;
+    }
+  }
+  input[type="submit"] {
+    background-color: #881;
+    border-radius: 0.354em;
+    border: solid thin #441;
+    color: white;
+    font-size: 1em;
+    padding: 0.354em 1em;
+  }
+  input[type="submit"]:hover {
+    background-color: #992;
+  }
+}
       EOF
     end
   else
@@ -1538,6 +1577,9 @@ section 10.3, 'Iteration E3: Finishing the Cart' do
         /* END:cartmain */
       EOF
     end
+  end
+  %w(1 2 3).each do |cart_id|
+    get "/carts/#{cart_id}", screenshot: { filename: "h_1_cart_#{cart_id}_styled.pdf", dimensions: [ 640, 300 ] }
   end
 
   desc 'Add a product to the cart, and see the total.'
