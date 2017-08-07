@@ -247,8 +247,8 @@ class DepotTest < Gorp::TestCase
   end
 
   section 11.1, "Iteration F1: Moving the Cart" do
-    assert_select 'h1', 'Your Cart'
-    assert_select '.total_cell', '$116.00'
+    assert_select 'h2', 'Your Cart'
+    assert_select 'tfoot .price', '$116.00'
     assert_select 'input[type=submit][value="Empty cart"]'
 
     assert_select 'h2, code', "'nil' is not an ActiveModel-compatible object. It must implement :to_partial_path."

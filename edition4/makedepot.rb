@@ -695,32 +695,31 @@ header.main {
 
   nav {
     padding-bottom: 1em;
-    padding-right: 1.41em;
     background: #141;
     text-align: center;  // mobile has centered nav
     @media (min-width: 30em) {
       text-align: left; // desktop nav is left-aligned
-      padding: 2.827em;  // and needs more padding
+      padding: 1em;     // and needs more padding
     }
     ul {
       list-style: none;
       margin: 0;
       padding: 0;
+      @media (min-width: 30em) {
+        padding-right: 1em; // give desktop some extra space
+      }
       li {
         margin: 0;
-        padding: 0.354em;
+        padding: 0.5em;
         text-transform: uppercase;
         letter-spacing: 0.354em;
         a {
-          padding: 0.354em 0.5em;
-          border-radius: 0.354em;
           color: #bfb;
-          display: block;
-          width: 100%;
           text-decoration: none;
-          &:hover {
-            background: #282;
-          }
+        }
+        a:hover {
+          background: none;
+          color: white;
         }
       }
     }
@@ -1145,7 +1144,7 @@ section 9.3, 'Iteration D3: Adding a button' do
   edit 'app/views/carts/show.html.erb' do
     self.all = <<-EOF.unindent(6)
       <% if notice %>
-        <aside class="notice"><%= notice %></aside>
+        <aside id="notice"><%= notice %></aside>
       <% end %>
 
       <h2>Your Pragmatic Cart</h2>
@@ -1436,9 +1435,11 @@ section 10.3, 'Iteration E3: Finishing the Cart' do
   edit 'app/views/carts/show.html.erb' do
     clear_highlights
     msub /(\s*)\Z/, "\n\n"
-    msub /\n\n()\Z/, <<-EOF.unindent(6), :highlight
+    msub /\n\n()\Z/, <<-EOF.unindent(6)
+    <!-- START_HIGHLIGHT -->
       <%= button_to 'Empty cart', @cart, :method => :delete,
           :data => { :confirm => 'Are you sure?' } %>
+    <!-- END_HIGHLIGHT -->
     EOF
     gsub! /:(\w+) (\s*)=>/, '\1:\2' unless RUBY_VERSION =~ /^1\.8/
   end
@@ -1520,6 +1521,12 @@ section 10.3, 'Iteration E3: Finishing the Cart' do
       msub /(\s*)\Z/, "\n\n"
       msub /\n\n()\Z/, <<-EOF
 .carts {
+  table {
+    border-collapse: collapse;
+  }
+  td {
+    padding: 0.5em;
+  }
   td.quantity {
     white-space: nowrap;
   }
@@ -1690,20 +1697,23 @@ section 11.1, 'Iteration F1: Moving the Cart' do
   desc 'Create a "partial" view, for just one line item'
   edit 'app/views/line_items/_line_item.html.erb' do |data|
     data.gsub! /.*_HIGHLIGHT.*\n/, ''
-    data[/()/,1] = <<-EOF.unindent(6)
-      <tr>
-        <td><%= line_item.quantity %>&times;</td>
-        <td><%= line_item.product.title %></td>
-        <td class="item_price"><%= number_to_currency(line_item.total_price) %></td>
-      </tr>
-    EOF
+    data[/()/,1] = <<-EOF
+<tr>
+  <td class="quantity"><%= line_item.quantity %></td>
+  <td><%= line_item.product.title %></td>
+  <td class="price"><%= number_to_currency(line_item.total_price) %></td>
+</tr>
+EOF
   end
 
   desc 'Replace that portion of the view with a callout to the partial'
-  edit 'app/views/carts/show.html.erb' do |data|
+  edit 'app/views/carts/show.html.erb' do
     clear_highlights
-    data.msub /^(  <% @cart.line_items.each do .* end %>\n)/m, 
-      "  <%= render(@cart.line_items) %>\n", :highlight
+    msub /^(    <% @cart.line_items.each do .* end %>\n)/m, %{
+    <!-- START_HIGHLIGHT -->
+    <%= render(@cart.line_items) %>
+    <!-- END_HIGHLIGHT -->
+}
   end
 
   desc 'Make a copy as a partial for the cart controller'
@@ -1718,8 +1728,8 @@ section 11.1, 'Iteration F1: Moving the Cart' do
       edit '@cart', :highlight
       sub! '@cart', 'cart'
     end
-    sub! /,\n<!-- END_HIGHLIGHT -->/, ",\n# END_HIGHLIGHT"
-    sub! /#START_HIGHLIGHT\n<%=/, "<!-- START_HIGHLIGHT -->\n<%="
+    #sub! /,\n<!-- END_HIGHLIGHT -->/, ",\n# END_HIGHLIGHT"
+    #sub! /#START_HIGHLIGHT\n<%=/, "<!-- START_HIGHLIGHT -->\n<%="
   end
 
   publish_code_snapshot :j
@@ -1732,10 +1742,10 @@ section 11.1, 'Iteration F1: Moving the Cart' do
   desc 'Reference the partial from the layout.'
   edit 'app/views/layouts/application.html.erb' do
     clear_highlights
-    msub /<div id="side">\n()/, <<-'EOF'.gsub(/^/, '  ') + "\n", :highlight
-      <div id="cart">
-        <%= render @cart %>
-      </div>
+    msub /<nav class="side_nav">\n()/, <<-EOF, :highlight
+        <div id="cart" class="carts">
+          <%= render @cart %>
+        </div>
     EOF
     gsub! /(<!-- <label id="[.\w]+"\/> -->)/, ''
     gsub! /(# <label id="[.\w]+"\/>)/, ''
@@ -1755,36 +1765,26 @@ section 11.1, 'Iteration F1: Moving the Cart' do
 
   desc 'Add a small bit of style.'
   if DEPOT_CSS =~ /scss/
-    edit 'app/assets/stylesheets/carts*.scss' do |data|
+    edit 'app/assets/stylesheets/application.scss' do
       clear_highlights
-      edit '.carts', :highlight
-      msub /.carts()/, ', #side #cart'
-    end
-
-    edit DEPOT_CSS, 'side' do
-      clear_highlights
-      edit /^  #side.*?\n  \}/m, :mark => 'side' do
-        msub /^()    ul \{$/, <<-EOF.unindent(6) + "\n", :highlight
-          form, div {
-            display: inline;
-          }  
- 
-          input {
-            font-size: small;
-          }
-
-          #cart {
-            font-size: smaller;
-            color:     white;
-
-            table {
-              border-top:    1px dotted #595;
-              border-bottom: 1px dotted #595;
-              margin-bottom: 10px;
-            }
-          }
-        EOF
-      end
+      msub /()^    ul {/,%{
+        // START:side
+    #cart {
+      article {
+        h2 {
+          margin-top: 0;
+        }
+        background: white;
+        border-radius: 0.5em;
+        margin: 1em;
+        padding: 1.414em;
+        @media (min-width: 30em) {
+          margin: 0; // desktop doesn't need this margin
+        }
+      }
+    }
+        // END:side
+}
     end
   else
     edit DEPOT_CSS, 'cartside' do |data|
@@ -1813,7 +1813,8 @@ section 11.1, 'Iteration F1: Moving the Cart' do
   end
 
   desc 'Purchase another product.'
-  post '/', 'product_id' => 3
+  post '/', { 'product_id' => 3 },
+    screenshot: { filename: "j_1_side_cart.pdf", dimensions: [ 1024, 300 ], form_data: {}, submit_form: 1 }
 
   publish_code_snapshot :k
 
@@ -1821,21 +1822,35 @@ section 11.1, 'Iteration F1: Moving the Cart' do
   test
 
   desc 'Verify that the products page is indeed broken'
-  get '/products'
+  get '/products',
+    screenshot: { filename: "k_1_products_page_broken.pdf", dimensions: [ 1024, 300 ]}
 
-  desc 'Check for nil'
-  edit "app/views/layouts/application.html.erb", 'side' do
+  desc 'Clear highlights'
+  edit "app/views/layouts/application.html.erb" do
     clear_highlights
-    msub /\n()\s+<div id="side">/, "      <!-- START:side -->\n"
-    msub /\n()\s+<div id="main">/, "      <!-- END:side -->\n"
-    edit /^ +<%= render @cart %>\s*\n/m do
-      gsub!(/^/, '  ')
-      msub /\A()/,   "          <% if @cart %>\n", :highlight
-      msub /\n()\Z/, "          <% end %>\n",     :highlight
-    end
-    gsub! '<!-- START_HIGHLIGHT -->', '      <!-- START_HIGHLIGHT -->'
-    gsub! '<!-- END_HIGHLIGHT -->', '      <!-- END_HIGHLIGHT -->'
-    sub! '<!-- END:hidden_div -->', '    <!-- END:hidden_div -->'
+  end
+  desc 'Start side'
+  edit "app/views/layouts/application.html.erb" do
+    msub /()<nav/, "<!-- START:side -->\n      "
+  end
+
+  desc 'End side'
+  edit "app/views/layouts/application.html.erb" do
+    msub /()<main/, "<!-- END:side -->\n      "
+  end
+  desc 'Add if statement'
+  edit "app/views/layouts/application.html.erb" do
+    msub /()\s+<div id=\"cart\"/, %{
+        <!-- START_HIGHLIGHT -->
+        <% if @cart %>
+}
+  end
+  desc 'Add end statement'
+  edit "app/views/layouts/application.html.erb" do
+    msub /\s+<\/div>()/, %{
+        <% end %>
+        <!-- END_HIGHLIGHT -->
+}
   end
 
   if $rails_version =~ /^[34]/
@@ -1924,7 +1939,7 @@ section 11.3, 'Iteration F3: Highlighting Changes' do
       msub /.*()/m, "\n" + <<-EOF.unindent(8), :highlight
         @keyframes line-item-highlight {
           0% {
-            background: #88ff88;
+            background: #8f8;
           }
           100% {
             background: none;
@@ -1988,7 +2003,6 @@ section 11.4, 'Iteration F4: Hide an Empty Cart' do
         end
       EOF
     end
-  else
   end
 
   desc 'Look at the app/helpers directory'
