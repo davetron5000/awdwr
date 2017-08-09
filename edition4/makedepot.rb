@@ -2095,7 +2095,7 @@ else
     desc 'Update price when notified of price changes'
     edit 'app/assets/javascripts/channels/products.coffee' do
       edit 'incoming data', :highlight do
-        gsub! /#.*/, 'document.getElementById("main").innerHTML = data.html'
+        gsub! /#.*/, 'document.getElementsByTagName("main")[0].innerHTML = data.html'
       end
     end
 
@@ -2139,10 +2139,56 @@ section 12.1, 'Iteration H1: Capturing an Order' do
   desc 'Add a Checkout button to the cart'
   edit 'app/views/carts/_cart.html.erb' do
     clear_highlights
-    msub /().*Empty cart.*\n.*>/, <<-'EOF'.unindent(6), :highlight
-      <%= button_to 'Checkout', new_order_path, :method => :get %>
-    EOF
+    msub /().*Empty cart/, %{
+  <!-- START_HIGHLIGHT -->
+  <div class="actions">
+  <!-- END_HIGHLIGHT -->
+}
+    msub /()<\/article>/,%{
+  <!-- START_HIGHLIGHT -->
+  <%= button_to 'Checkout', new_order_path,
+                method: :get,
+                class: "checkout"%>
+  </div>
+  <!-- END_HIGHLIGHT -->
+}
     gsub! /:(\w+) (\s*)=>/, '\1:\2' unless RUBY_VERSION =~ /^1\.8/
+  end
+
+  desc "Style the new button"
+  edit "app/assets/stylesheets/carts.scss" do
+    msub /^(  input\[type=\"submit.*$)/m, %{
+  // START_HIGHLIGHT
+  .actions {
+    text-align: right;
+    form {
+      display: inline;
+  // END_HIGHLIGHT
+      input[type="submit"] {
+        background-color: #881;
+        border-radius: 0.354em;
+        border: solid thin #441;
+        color: white;
+        font-size: 1em;
+        padding: 0.354em 1em;
+      }
+      input[type="submit"]:hover {
+        background-color: #992;
+      }
+  // START_HIGHLIGHT
+      input[type="submit"].checkout {
+        background-color: #bfb;
+        color: black;
+        font-weight: bold;
+      }
+      input[type="submit"].checkout:hover {
+        background-color: #efe;
+      }
+    }
+  }
+  // END_HIGHLIGHT
+\}
+}
   end
 
   desc 'Return a notice when checking out an empty cart'
@@ -2274,46 +2320,83 @@ section 12.1, 'Iteration H1: Capturing an Order' do
   if DEPOT_CSS =~ /scss/
     edit DEPOT_CSS, 'form' do
       msub /(\s*)\Z/, "\n\n"
-      msub /\n\n()\Z/, <<-EOF.unindent(8), :mark => 'form'
-        .depot_form {
-          fieldset {
-            background: #efe;
-
-            legend {
-              color: #dfd;
-              background: #141;
-              font-family: sans-serif;
-              padding: 0.2em 1em;
-            }
-
-            div {
-              margin-bottom: 0.3em;
-            }
-          }
-
-          form {
-            label {
-              width: 10em;
-              float: left;
-              text-align: right;
-              padding-top: 0.2em;
-              margin-right: 0.1em;
-              display: block;
-            }
-
-            select, textarea, input {
-              margin-left: 0.5em;
-            }
-
-            .actions {
-              margin-left: 10em;
-            }
-
-            br {
-              display: none;
-            }
-          }
-        }
+      msub /\n\n()\Z/, <<-EOF, :mark => 'form'
+.checkout_form {
+  padding: 0 1em;
+  h1 {
+    font-size: 1.99em;
+    line-height: 1.41em;
+    margin-bottom: 0.5em;
+    padding: 0;
+  }
+  .field, .actions {
+    margin-bottom: 0.5em;
+    padding: 0;
+  }
+  .actions {
+    text-align: right;
+    padding: 1em 0;
+  }
+  input, textarea, select, option {
+    border: solid thin #888;
+    box-sizing: border-box;
+    font-size: 1em;
+    padding: 0.5em;
+    width: 100%;
+  }
+  label {
+    padding: 0.5em 0;
+  }
+  input[type="submit"] {
+    background-color: #bfb;
+    border-radius: 0.354em;
+    border: solid thin #888;
+    color: black;
+    font-size: 1.41em;
+    font-weight: bold;
+    padding: 0.354em 1em;
+  }
+  input[type="submit"]:hover {
+    background-color: #9d9;
+  }
+  // Also, clean up the error styling
+  #error_explanation {
+    background-color: white;
+    border-radius: 1em;
+    border: solid thin red;
+    margin-bottom: 0.5em;
+    padding: 0.5em;
+    width: 100%;
+    h2 {
+      background: none;
+      color: red;
+      font-size: 1.41em;
+      line-height: 1.41em;
+      padding: 1em;
+    }
+    ul {
+      margin-top: 0;
+      li {
+        color: red;
+        font-size: 1em;
+      }
+    }
+  }
+  .field_with_errors {
+    background: none;
+    color: red;
+    width: 100%;
+    label {
+      font-weight: bold;
+    }
+    label::before {
+      content: "! ";
+    }
+    input,textarea {
+      background: pink;
+    }
+  }
+}
       EOF
     end
   else
@@ -2357,6 +2440,16 @@ section 12.1, 'Iteration H1: Capturing an Order' do
       EOF
     end
   end
+
+  post '/', {'product_id' => 2}
+  get '/', screenshot: {
+    filename: "o_1_checkout_form.pdf",
+    dimensions: [ 1024, 300 ],
+    workflow: [
+      "line_items?product_id=2",
+      "orders/new",
+    ]
+  }
 
   desc 'Validate that required fields are present'
   edit 'app/models/order.rb', 'validate' do |data|
@@ -2484,7 +2577,17 @@ section 12.1, 'Iteration H1: Capturing an Order' do
   end
 
   desc 'take a look at the validation errors'
-  post '/orders/new', 'order[name]' => ''
+  post '/orders/new', { "order[name]" => "" }
+
+  get '/', screenshot: {
+    filename: "o_2_checkout_errors.pdf",
+    dimensions: [ 1024, 300 ],
+    workflow: [
+      "line_items?product_id=2",
+      "orders/new",
+      "/orders",
+    ]
+  }
 
   desc 'process an order'
   post '/orders/new',
